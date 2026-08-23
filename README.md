@@ -192,7 +192,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 ## Authors
 
-* **Aditya** - Hardware and Backend
+* **Aditya** - Hardware and Backend Developer
 * **Asmit** - AI Neural Network Model Developer
 
 ---
