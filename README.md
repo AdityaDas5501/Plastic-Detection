@@ -190,6 +190,13 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 ---
 
+## Authors
+
+* **Aditya** - Hardware and Backend
+* **Asmit** - AI Neural Network Model Developer
+
+---
+
 ##  License
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** - see the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
