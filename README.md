@@ -157,7 +157,7 @@ The physical routing system requires microsecond-accurate deterministic signalin
 
 | Component | Function | Estimated Cost (INR) |
 | --- | --- | --- |
-| **ESP32 NodeMCU (x2)** | Hardware interrupts & 50Hz PWM Master | ₹320 |
+| **ESP32 Microcontroller** | Hardware Controller & 50Hz PWM Master | ₹320 |
 | **SG90 Micro Servo** | Mechanical Flap Actuator (0° - 180°) | ₹140 |
 | **Ultrasonic Sensor (HC-SR04)** | Optical Distance Trigger | ₹60 |
 | **Structural Intake Chute** | Mechanical Guidance Enclosure | ₹200 |
