@@ -200,7 +200,7 @@ To ensure maintainability and separation of concerns across edge hardware and de
 
 ```bash
 git clone [https://github.com/Asmit159/Plastic-Detection.git](https://github.com/Asmit159/Plastic-Detection.git)
-cd smart-waste-segregator
+cd Plastic-Detection
 
 python -m venv venv
 source venv/bin/activate
