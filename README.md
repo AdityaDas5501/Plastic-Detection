@@ -199,7 +199,7 @@ To ensure maintainability and separation of concerns across edge hardware and de
 ### 8.1. Environment Initialization
 
 ```bash
-git clone [https://github.com/Asmit159/smart-waste-segregator.git](https://github.com/Asmit159/smart-waste-segregator.git)
+git clone [https://github.com/Asmit159/Plastic-Detection.git](https://github.com/Asmit159/Plastic-Detection.git)
 cd smart-waste-segregator
 
 python -m venv venv
@@ -258,7 +258,3 @@ The architectural formulations, objective functions, and optimization strategies
 ## 11. License
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** - see the [LICENSE](https://www.google.com/search?q=LICENSE) file in the root directory for full legal text and permissions.
-
-```
-
-```
