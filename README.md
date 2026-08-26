@@ -21,12 +21,13 @@
 3. [Algorithmic Challenges & Programmatic Mitigations](#3-algorithmic-challenges--programmatic-mitigations)
 4. [Mathematical Formulations & Network Dynamics](#4-mathematical-formulations--network-dynamics)
 5. [Quantitative Metrics & Benchmark Results](#5-quantitative-metrics--benchmark-results)
-6. [Hardware Infrastructure & Bill of Materials](#6-hardware-infrastructure--bill-of-materials)
-7. [Repository Folder Structure](#7-repository-folder-structure)
-8. [Installation & Deployment](#8-installation--deployment)
-9. [Resources and Publications Derived](#9-resources-and-publications-derived)
-10. [Authors & Contributors](#10-authors--contributors)
-11. [License](#11-license)
+6. [Training Results](#6-training-results)
+7. [Hardware Infrastructure & Bill of Materials](#7-hardware-infrastructure--bill-of-materials)
+8. [Repository Folder Structure](#8-repository-folder-structure)
+9. [Installation & Deployment](#9-installation--deployment)
+10. [Resources and Publications Derived](#10-resources-and-publications-derived)
+11. [Authors & Contributors](#11-authors--contributors)
+12. [License](#12-license)
 
 ---
 
@@ -147,11 +148,17 @@ The model was rigorously trained for 40 epochs using the AdamW optimizer (learni
 
 **Overall System Accuracy: 94.00%**
 
+---
+
+## 6. Training Results
+
+<img width="1600" height="960" alt="asmitmodelgraphjpeg" src="https://github.com/user-attachments/assets/8b4845f6-1ae0-483a-955e-3ee3de523dd3" />
+
 Note: Peak validation accuracy during the training sequence stabilized at 95.44% (Epoch 38), demonstrating the efficacy of the learning rate decay schedule.
 
 ---
 
-## 6. Hardware Infrastructure & Bill of Materials
+## 7. Hardware Infrastructure & Bill of Materials
 
 The physical routing system requires microsecond-accurate deterministic signaling, which is achieved by bypassing wireless stacks in favor of high-baud UART serial links.
 
@@ -166,7 +173,7 @@ The physical routing system requires microsecond-accurate deterministic signalin
 
 ---
 
-## 7. Repository Folder Structure
+## 8. Repository Folder Structure
 
 To ensure maintainability and separation of concerns across edge hardware and deep learning components, the repository adheres to the following structural paradigm:
 
@@ -194,9 +201,9 @@ To ensure maintainability and separation of concerns across edge hardware and de
 
 ---
 
-## 8. Installation & Deployment
+## 9. Installation & Deployment
 
-### 8.1. Environment Initialization
+### 9.1. Environment Initialization
 
 ```bash
 git clone [https://github.com/Asmit159/Plastic-Detection.git](https://github.com/Asmit159/Plastic-Detection.git)
@@ -208,14 +215,14 @@ pip install -r requirements.txt
 
 ```
 
-### 8.2. Microcontroller Provisioning
+### 9.2. Microcontroller Provisioning
 
 1. Open the Arduino IDE and navigate to the `/firmware/` directory.
 2. Flash `esp32_trigger.ino` to the intake microcontroller (verify Ultrasonic trigger pins).
 3. Flash `esp32_actuator.ino` to the output microcontroller (verify SG90 PWM on GPIO 18).
 4. Establish physical UART loopbacks over USB.
 
-### 8.3. Execution
+### 9.3. Execution
 
 Initialize the Python orchestration server to begin listening for hardware interrupts and spawning inference threads:
 
@@ -226,7 +233,7 @@ python app/backend/main.py
 
 ---
 
-## 9. Resources and Publications Derived
+## 10. Resources and Publications Derived
 
 The architectural formulations, objective functions, and optimization strategies deployed in this system are built upon the following foundational research in deep learning and computer vision:
 
@@ -239,7 +246,7 @@ The architectural formulations, objective functions, and optimization strategies
 
 ---
 
-## 10. Authors & Contributors
+## 11. Authors & Contributors
 
 ### Core Development Team
 
@@ -255,6 +262,6 @@ The architectural formulations, objective functions, and optimization strategies
 
 ---
 
-## 11. License
+## 12. License
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** - see the [LICENSE](https://www.google.com/search?q=LICENSE) file in the root directory for full legal text and permissions.
