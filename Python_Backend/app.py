@@ -7,13 +7,15 @@ import threading
 import time
 import csv
 import io
+import os
 
 import db  # shared SQLite logging module (see db.py)
 
 app = FastAPI()
 
 # Load the new ResNet ONNX model
-session = ort.InferenceSession("plastic_sorter_resnet.onnx")
+model_path = os.path.join(os.path.dirname(__file__), "..", "model", "onnx", "plastic_sorter_resnet.onnx")
+session = ort.InferenceSession(model_path)
 
 MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
