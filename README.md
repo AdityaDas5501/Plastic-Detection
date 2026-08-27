@@ -187,8 +187,9 @@ To ensure maintainability and separation of concerns across edge hardware and de
 │   ├── esp32_trigger/          # Ultrasonic interrupt and UART TX ('T') logic
 │   └── esp32_actuator/         # UART RX and 50Hz PWM Servo control logic
 ├── models/
-│   ├── weights/                # Serialized best_resnet.pth and .onnx graphs
-│   └── thresholds.json         # Heuristic confidence thresholds
+│   ├── weights/                # Serialized best_resnet.pth
+│   ├── onnx/                   # Contains onnx graph
+│   └── plastic-resnet.ipynb    # The real model notebook used to train on dataset
 ├── notebooks/
 │   └── plastic-resnet_2.ipynb  # Core training, augmentation, and validation pipeline
 ├── scripts/
