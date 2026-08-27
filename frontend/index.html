@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Vision Unit · Plastic Sort Scanner</title>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg: #0a0c0f;
+        --panel: #14171c;
+        --panel-raised: #1a1e24;
+        --hairline: rgba(255,255,255,0.08);
+        --grid: rgba(124,138,153,0.06);
+        --steel: #7c8a99;
+        --steel-dim: #4a5560;
+        --ink: #eef1f4;
+        --cyan: #2dd4bf;
+        --amber: #ffb020;
+        --green: #00e08a;
+        --coral: #ff5a5f;
+        --mono: 'JetBrains Mono', ui-monospace, monospace;
+        --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+        margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+        font-family: var(--sans); overflow: hidden;
+    }
+
+    body {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        height: 100vh; padding: 20px; position: relative;
+        background-image:
+            linear-gradient(var(--grid) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+        background-size: 28px 28px;
+    }
+
+    /* ---------- Header ---------- */
+    .header { text-align: center; margin-bottom: 22px; }
+    .eyebrow {
+        font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.22em;
+        color: var(--cyan); text-transform: uppercase; margin: 0 0 8px;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .eyebrow::before, .eyebrow::after {
+        content: ''; width: 14px; height: 1px; background: var(--steel-dim);
+    }
+    h1 {
+        font-family: var(--mono); font-weight: 800; font-size: 1.35rem;
+        letter-spacing: 0.03em; margin: 0; color: var(--ink);
+    }
+    .subhead {
+        font-family: var(--mono); font-size: 0.72rem; color: var(--steel);
+        margin-top: 6px; letter-spacing: 0.05em;
+    }
+
+    /* ---------- Viewfinder ---------- */
+    .viewfinder {
+        position: relative; width: min(85vw, 340px); aspect-ratio: 1/1;
+        border-radius: 4px; overflow: hidden; background: #000;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    video { width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(1.05) contrast(1.02); }
+
+    .corner {
+        position: absolute; width: 26px; height: 26px; pointer-events: none;
+        border-color: var(--cyan); transition: border-color 0.3s ease;
+    }
+    .corner.tl { top: 10px; left: 10px; border-top: 2px solid; border-left: 2px solid; }
+    .corner.tr { top: 10px; right: 10px; border-top: 2px solid; border-right: 2px solid; }
+    .corner.bl { bottom: 10px; left: 10px; border-bottom: 2px solid; border-left: 2px solid; }
+    .corner.br { bottom: 10px; right: 10px; border-bottom: 2px solid; border-right: 2px solid; }
+    .viewfinder.locked .corner { border-color: var(--green); }
+    .viewfinder.warn .corner { border-color: var(--amber); }
+    .viewfinder.denied .corner { border-color: var(--coral); }
+
+    .crop-guide {
+        position: absolute; top: 6.25%; left: 6.25%; width: 87.5%; height: 87.5%;
+        border: 1px dashed rgba(255,255,255,0.18); border-radius: 6px; pointer-events: none;
+    }
+
+    .scanline {
+        position: absolute; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+        box-shadow: 0 0 12px 1px var(--cyan);
+        top: 0; opacity: 0.85; pointer-events: none;
+        animation: sweep 2.6s ease-in-out infinite;
+    }
+    @keyframes sweep {
+        0%   { top: 6%; opacity: 0; }
+        8%   { opacity: 0.85; }
+        50%  { top: 94%; opacity: 0.85; }
+        92%  { opacity: 0; }
+        100% { top: 6%; opacity: 0; }
+    }
+    .viewfinder.locked .scanline, .viewfinder.warn .scanline { animation-play-state: paused; opacity: 0; }
+
+    .flash {
+        position: absolute; inset: 0; background: #fff; opacity: 0;
+        pointer-events: none;
+    }
+    .flash.fire { animation: flash-fire 0.35s ease-out; }
+    @keyframes flash-fire { 0% { opacity: 0.55; } 100% { opacity: 0; } }
+
+    /* ---------- Readout panel ---------- */
+    .readout {
+        width: min(85vw, 340px); margin-top: 16px; background: var(--panel);
+        border: 1px solid var(--hairline); border-radius: 10px; padding: 14px 16px;
+    }
+    .readout-row { display: flex; align-items: baseline; justify-content: space-between; }
+    .readout-label {
+        font-family: var(--mono); font-size: 0.68rem; color: var(--steel);
+        letter-spacing: 0.15em; text-transform: uppercase;
+    }
+    #status {
+        font-family: var(--mono); font-weight: 600; font-size: 0.95rem; color: var(--ink);
+        margin-top: 4px; min-height: 22px; text-align: left; letter-spacing: 0.02em;
+    }
+
+    .meter {
+        margin-top: 12px; display: flex; gap: 3px; height: 14px;
+    }
+    .meter-seg {
+        flex: 1; background: var(--panel-raised); border-radius: 1px;
+        transition: background 0.15s ease;
+    }
+    .meter-seg.on { background: var(--steel); }
+    .meter-seg.on.plastic { background: var(--green); }
+    .meter-seg.on.nonplastic { background: var(--amber); }
+
+    /* ---------- Capture button ---------- */
+    #captureBtn {
+        margin-top: 22px; padding: 15px 44px; font-family: var(--mono);
+        font-size: 0.85rem; font-weight: 700; letter-spacing: 0.12em;
+        color: #06110d; background: var(--green); border: none;
+        clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+        cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+        opacity: 0.35; pointer-events: none; text-transform: uppercase;
+    }
+    #captureBtn.ready {
+        opacity: 1; pointer-events: auto; box-shadow: 0 0 24px rgba(0, 224, 138, 0.35);
+    }
+    #captureBtn.ready:active { transform: scale(0.96); }
+
+    .footer-note {
+        margin-top: 18px; font-family: var(--mono); font-size: 0.62rem;
+        color: var(--steel-dim); letter-spacing: 0.08em; text-align: center; max-width: 300px;
+    }
+
+    canvas { display: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+        .scanline { animation: none; opacity: 0; }
+        .flash.fire { animation: none; }
+    }
+</style>
+</head>
+<body>
+
+    <div class="header">
+        <p class="eyebrow">Material Recovery · Vision Unit</p>
+        <h1>PLASTIC SORT SCANNER</h1>
+        <p class="subhead">Center item in frame — hold steady</p>
+    </div>
+
+    <div class="viewfinder" id="viewfinder">
+        <video id="webcam" autoplay playsinline muted></video>
+        <div class="crop-guide"></div>
+        <div class="scanline" id="scanline"></div>
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+        <div class="flash" id="flash"></div>
+    </div>
+
+    <canvas id="canvas" width="224" height="224"></canvas>
+
+    <div class="readout">
+        <div class="readout-row">
+            <span class="readout-label">Status</span>
+            <span class="readout-label" id="modelTag">—</span>
+        </div>
+        <div id="status" aria-live="polite">Initializing camera and model…</div>
+        <div class="meter" id="meter"></div>
+    </div>
+
+    <button id="captureBtn" onclick="analyzeFrame()">Capture &amp; Analyze</button>
+
+    <p class="footer-note" id="footerNote">Runs fully on-device via ONNX Runtime Web. No images leave this browser.</p>
+
+    <script>
+        // ================================================================
+        // CONFIGURATION
+        // ================================================================
+        const MODEL_URL = '/best_embedded.onnx';
+
+        const RESIZE_SHORT_SIDE = 256;
+        const CROP_SIZE = 224;
+
+        // Index 0 = plastic, index 1 = non-plastic in the model's output.
+        // Adjust if your export orders classes differently.
+        const PLASTIC_CLASS_INDEX = 0;
+        const PLASTIC_THRESHOLD = 0.35;
+
+        const IMAGENET_MEAN = [0.485, 0.456, 0.406];
+        const IMAGENET_STD  = [0.229, 0.224, 0.225];
+
+        const METER_SEGMENTS = 10;
+        // ================================================================
+
+        ort.env.wasm.numThreads = 1;
+        ort.env.wasm.simd = false;
+        ort.env.wasm.wasmPaths = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ort.env.versions.web}/dist/`;
+
+        let session;
+        let stream;
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const statusEl = document.getElementById('status');
+        const modelTag = document.getElementById('modelTag');
+        const btn = document.getElementById('captureBtn');
+        const viewfinder = document.getElementById('viewfinder');
+        const flashEl = document.getElementById('flash');
+        const meterEl = document.getElementById('meter');
+        const footerNote = document.getElementById('footerNote');
+
+        let videoReady = false;
+        let modelReady = false;
+
+        // Build the confidence meter segments once.
+        for (let i = 0; i < METER_SEGMENTS; i++) {
+            const seg = document.createElement('div');
+            seg.className = 'meter-seg';
+            meterEl.appendChild(seg);
+        }
+        const segments = Array.from(meterEl.children);
+
+        function setViewfinderState(state) {
+            viewfinder.classList.remove('locked', 'warn', 'denied');
+            if (state) viewfinder.classList.add(state);
+        }
+
+        function setStatus(text, color) {
+            statusEl.textContent = text;
+            statusEl.style.color = color || 'var(--ink)';
+        }
+
+        function updateMeter(fraction, cls) {
+            const filled = Math.round(fraction * METER_SEGMENTS);
+            segments.forEach((seg, i) => {
+                seg.classList.remove('on', 'plastic', 'nonplastic');
+                if (i < filled) {
+                    seg.classList.add('on', cls);
+                }
+            });
+        }
+
+        function maybeEnableButton() {
+            if (videoReady && modelReady) {
+                btn.classList.add('ready');
+                btn.textContent = 'Snap & Analyze';
+                setStatus('Target locked. Ready to scan.', 'var(--ink)');
+                setViewfinderState(null);
+            }
+        }
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 1280 } },
+                    audio: false
+                });
+                video.srcObject = stream;
+
+                video.onloadedmetadata = () => {
+                    video.play();
+                    videoReady = true;
+                    maybeEnableButton();
+                };
+            } catch (err) {
+                setViewfinderState('denied');
+                setStatus('Camera access denied. Check browser permissions and reload.', 'var(--coral)');
+            }
+        }
+
+        async function loadModel() {
+            try {
+                modelTag.textContent = 'LOADING';
+                setStatus('Downloading model weights…', 'var(--cyan)');
+
+                const options = {
+                    executionProviders: ['wasm'],
+                    graphOptimizationLevel: 'all'
+                };
+
+                // Fetch the model as a buffer ourselves rather than handing ORT a bare
+                // URL. If the .onnx file references an external weights file (e.g.
+                // "*.onnx.data"), that path only resolves reliably in Node — in the
+                // browser it triggers "Module.MountedFiles is not available" and the
+                // session fails to create. Fetching explicitly lets us catch that
+                // case and explain it, instead of surfacing a cryptic engine error.
+                const res = await fetch(MODEL_URL);
+                if (!res.ok) throw new Error(`Model fetch failed (HTTP ${res.status})`);
+                const modelBuffer = new Uint8Array(await res.arrayBuffer());
+
+                session = await ort.InferenceSession.create(modelBuffer, options);
+
+                modelReady = true;
+                modelTag.textContent = 'ONLINE';
+                maybeEnableButton();
+            } catch (e) {
+                const msg = String(e && e.message || e);
+                modelTag.textContent = 'ERROR';
+                setViewfinderState('warn');
+
+                if (msg.includes('external data') || msg.includes('MountedFiles')) {
+                    setStatus(
+                        'Model uses external weight data, which the browser runtime can\'t auto-load. Re-export the .onnx with all weights embedded in a single file (save_as_external_data=False) and redeploy.',
+                        'var(--amber)'
+                    );
+                } else {
+                    setStatus('Model load failed: ' + msg, 'var(--coral)');
+                }
+            }
+        }
+
+        function softmax(logits) {
+            const maxVal = Math.max(...logits);
+            const exps = logits.map(l => Math.exp(l - maxVal));
+            const sumExps = exps.reduce((a, b) => a + b, 0);
+            return exps.map(e => e / sumExps);
+        }
+
+        async function analyzeFrame() {
+            if (!session) return;
+
+            flashEl.classList.remove('fire');
+            void flashEl.offsetWidth; // restart animation
+            flashEl.classList.add('fire');
+
+            setStatus('Processing…', 'var(--cyan)');
+            updateMeter(0, '');
+
+            const vw = video.videoWidth;
+            const vh = video.videoHeight;
+            const minDim = Math.min(vw, vh);
+
+            const cropRatio = CROP_SIZE / RESIZE_SHORT_SIDE;
+            const cropSize = minDim * cropRatio;
+            const startX = (vw - cropSize) / 2;
+            const startY = (vh - cropSize) / 2;
+
+            ctx.drawImage(video, startX, startY, cropSize, cropSize, 0, 0, 224, 224);
+
+            const imgData = ctx.getImageData(0, 0, 224, 224).data;
+            const float32Data = new Float32Array(3 * 224 * 224);
+
+            for (let i = 0; i < 224 * 224; i++) {
+                const r = imgData[i * 4] / 255.0;
+                const g = imgData[i * 4 + 1] / 255.0;
+                const b = imgData[i * 4 + 2] / 255.0;
+
+                float32Data[i] = (r - IMAGENET_MEAN[0]) / IMAGENET_STD[0];
+                float32Data[i + 224 * 224] = (g - IMAGENET_MEAN[1]) / IMAGENET_STD[1];
+                float32Data[i + 2 * 224 * 224] = (b - IMAGENET_MEAN[2]) / IMAGENET_STD[2];
+            }
+
+            try {
+                const tensor = new ort.Tensor('float32', float32Data, [1, 3, 224, 224]);
+
+                const inputName = session.inputNames[0];
+                const results = await session.run({ [inputName]: tensor });
+
+                const outputName = session.outputNames[0];
+                const rawLogits = results[outputName].data;
+
+                const probs = softmax(Array.from(rawLogits));
+                const probPlastic = probs[PLASTIC_CLASS_INDEX];
+                const probNonPlastic = 1 - probPlastic;
+
+                if (probPlastic >= PLASTIC_THRESHOLD) {
+                    setViewfinderState('locked');
+                    setStatus(`PLASTIC DETECTED — ${Math.round(probPlastic * 100)}% ♻️`, 'var(--green)');
+                    updateMeter(probPlastic, 'plastic');
+                } else {
+                    setViewfinderState('warn');
+                    setStatus(`NON-PLASTIC — ${Math.round(probNonPlastic * 100)}% 📦`, 'var(--amber)');
+                    updateMeter(probNonPlastic, 'nonplastic');
+                }
+
+                setTimeout(() => setViewfinderState(null), 1400);
+            } catch (e) {
+                setViewfinderState('warn');
+                setStatus('Inference crashed: ' + (e.message || e), 'var(--coral)');
+                console.error(e);
+            }
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (stream) stream.getTracks().forEach(t => t.stop());
+        });
+
+        startCamera();
+        loadModel();
+    </script>
+</body>
+</html>
