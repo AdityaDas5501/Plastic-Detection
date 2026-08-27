@@ -1,0 +1,8 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# PlatformIO / ESP32
+.pio/
+.vscode/
