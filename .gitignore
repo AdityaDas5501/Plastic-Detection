@@ -2,6 +2,7 @@
 .venv/
 __pycache__/
 *.pyc
+*.db
 
 # PlatformIO / ESP32
 .pio/
